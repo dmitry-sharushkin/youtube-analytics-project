@@ -16,4 +16,4 @@ class Channel:
         api_key: str = os.getenv('YOUTUBE_API_KEY')
         youtube = build('youtube', 'v3', developerKey=api_key)
         channel = youtube.channels().list(id=self.channel_id, part='snippet,statistics').execute()
-        print(channel)
+        print(json.dumps(channel, indent=2, ensure_ascii=False))
