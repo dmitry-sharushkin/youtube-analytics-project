@@ -18,6 +18,26 @@ class Channel:
         self.view_count = None
         self._get_channel_info()
 
+    def __str__(self):
+        """Выводит название канала и ссылку на него"""
+        return f"'{self.title} ({self.url})'"
+
+    def __add__(self, other) -> int:
+        """Складывает количесвто подписчиков двух каналов"""
+        return self.subscribers_count + other.subscribers_count
+
+    def __sub__(self, other) -> int:
+        """Вычитает количество подписчиков двух каналов"""
+        return self.subscribers_count - other.subscribers_count
+
+    def __gt__(self, other) -> bool:
+        """Сравнение 'больше'"""
+        return self.subscribers_count > other.subscribers_count
+
+    def __ge__(self, other) -> bool:
+        """Сравнение 'больше или равно'"""
+        return self.subscribers_count >= other.subscribers_count
+
     @property
     def channel_id(self):
         return self._channel_id
