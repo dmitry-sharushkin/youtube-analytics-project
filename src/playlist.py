@@ -1,21 +1,25 @@
-import os
 import datetime
-
 import isodate
+import os
+
 from googleapiclient.discovery import build
 
 
 class PlayList:
-    """Класс, который инициализируется по id плейлиста"""
 
-    def __init__(self, playlist_id: str):
-        """Экземпляр инициализируется id плейлиста. Дальше все данные будут подтягиваться по API."""
-        self.playlist_id = playlist_id
-        playlist_videos = self._get_playlist_info()
-        video_response = self._get_videos()
-        self.title = playlist_videos['items'][0]['snippet']['title']
-        self.url = f'https://www.youtube.com/playlist?list={self.playlist_id}'
-        self.like_count_video = video_response['items'][0]['statistics']['likeCount']
+    def __init__(self, playlist_id: str) -> None:
+        self.playlist = self.get_service().playlists().list(part="snippet,contentDetails", id=playlist_id).execute()
+        self.title = self.playlist['items'][0]['snippet']['title']
+        self.url = f"https://www.youtube.com/playlist?list={playlist_id}"
+        self.playlist_videos = self.get_service().playlistItems().list(
+            playlistId=playlist_id,
+            part='contentDetails',
+            maxResults=50,
+        ).execute()
+        self.video_id: list[str] = [video['contentDetails']['videoId'] for video in self.playlist_videos['items']]
+        self.video_response = self.get_service().videos().list(part='snippet,statistics,contentDetails,topicDetails',
+                                                               id=','.join(self.video_id)
+                                                               ).execute()
 
     @classmethod
     def get_service(cls):
@@ -23,43 +27,25 @@ class PlayList:
         youtube = build('youtube', 'v3', developerKey=api_key)
         return youtube
 
-    def _get_playlist_info(self):
-        playlist_videos = self.get_service().playlistItems().list(playlistId=self.playlist_id,
-                                                                  part='contentDetails,snippet',
-                                                                  maxResults=50, ).execute()
-        return playlist_videos
-
-    def _get_videos(self):
-        """Заполняет список видео в плейлисте."""
-        playlist_videos = self.get_service().playlistItems().list(playlistId=self.playlist_id,
-                                                                  part='contentDetails',
-                                                                  maxResults=50,
-                                                                  ).execute()
-        video_ids: list[str] = [video['contentDetails']['videoId'] for video in playlist_videos['items']]
-        video_response = self.get_service().videos().list(part='contentDetails,statistics',
-                                                          id=','.join(video_ids)
-                                                          ).execute()
-        return video_response
-
     @property
     def total_duration(self):
-        """Возвращает суммарную длительность плейлиста."""
-        total_duration = datetime.timedelta()
-        for video in video_response['items']:
+        """Возвращает объект класса `datetime.timedelta` с суммарной длительность плейлиста"""
+        total_time_videos = datetime.timedelta()
+        for video in self.video_response['items']:
             # YouTube video duration is in ISO 8601 format
             iso_8601_duration = video['contentDetails']['duration']
             duration = isodate.parse_duration(iso_8601_duration)
-            time = str(duration).split(":")
-            duration = datetime.timedelta(hours=int(time[0]), minutes=int(time[1]), seconds=int(time[2]))
-            total_duration += duration
-            return total_duration
+            total_time_videos += duration
+        return total_time_videos
 
-    def __str__(self):
-        """Метод возвращает общую продолжительность play-листа"""
-        return self.total_duration
+    def show_best_video(self):
+        """Возвращает ссылку на самое популярное видео из плейлиста (по количеству лайков)"""
+        like_count = 0
+        for video in self.video_response['items']:
+            video_response = self.get_service().videos().list(part='snippet,statistics,contentDetails,topicDetails',
+                                                              id=video['id']).execute()
+            if int(video_response['items'][0]['statistics']['likeCount']) > like_count:
+                like_count = int(video_response['items'][0]['statistics']['likeCount'])
+                self.video_url = video_response['items'][0]['id']
 
-    def show_best_video(self) -> str:
-        """Возвращает ссылку на самое популярное видео из плейлиста (по количеству лайков)."""
-        self.like_count_video = video_response['items'][0]['statistics']['likeCount'].sort(reverse=True)
-        max_like_video = self.like_count_video[0]
-        return max_like_video
+        return f'https://youtu.be/{self.video_url}'
