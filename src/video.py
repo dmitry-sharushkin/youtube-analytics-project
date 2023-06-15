@@ -8,12 +8,12 @@ class Video:
 
     def __init__(self, video_id):
         """Экземпляр инициализируется реальными данными."""
-        self.video_id: str = video_id
+        self.video_id = video_id
         video_response = self._get_video_info()
-        self.title: str = video_response['items'][0]['snippet']['title']
-        self.url: str = f'https://www.youtube.com/videos/{self.video_id}'
-        self.view_count_video: int = video_response['items'][0]['statistics']['viewCount']
-        self.like_count_video: int = video_response['items'][0]['statistics']['likeCount']
+        self.title = video_response['items'][0]['snippet']['title']
+        self.url = f'https://www.youtube.com/videos/{self.video_id}'
+        self.view_count = video_response['items'][0]['statistics']['viewCount']
+        self.like_count = video_response['items'][0]['statistics']['likeCount']
 
     def __str__(self):
         """Выводит название канала"""
@@ -35,7 +35,7 @@ class Video:
 class PLVideo(Video):
     """Второй класс для видео (плейлисты)"""
 
-    def __init__(self, video_id, plvideo_id):
+    def __init__(self, video_id, playlist_id):
 
         super().__init__(video_id)
-        self.plvideo_id = plvideo_id
+        self.playlist_id = playlist_id
